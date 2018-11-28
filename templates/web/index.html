@@ -1,0 +1,76 @@
+{% extends 'web/public/layout.html' %}
+{% block app-page %}
+  <template>
+    {# 表格栏 #}
+    <b-table :items="items" :fields="fields">
+      <template slot="title" slot-scope="data">
+        <a :href="`/books/${data.item.id}/`">
+          {% templatetag openvariable %}data.value{% templatetag closevariable %}
+        </a>
+      </template>
+      <span slot="handle" slot-scope="data" v-html="data.value"></span>
+    </b-table>
+    {# 分页 #}
+    <b-row>
+      <b-col md="6" class="my-1">
+        <b-pagination :total-rows="totalRows" :per-page="perPage" v-model="currentPage" class="my-0"/>
+      </b-col>
+    </b-row>
+  </template>
+{% endblock %}
+{% block js %}
+  <script>
+
+    new Vue({
+      el: '#app',
+      data: {
+        // 展示的字段
+        fields: [],
+        // 数据
+        items: [],
+        totalRows: 0,
+        perPage: 2,
+        currentPage: 1
+      },
+      mounted() {
+        this.initData();
+        this.initDeleteBtn();
+        this.initPageBtn();
+      },
+      computed: {
+        // 计算属性的 getter
+        offset: function () {
+          // `this` 指向 vm 实例
+          return (this.currentPage - 1) * this.perPage
+        }
+      },
+      methods: {
+        initData() {
+          var vm = this;
+          axios.get(`/api/books/?limit=${this.perPage}&offset=${this.offset}`).then(function (resp) {
+            vm.fields = resp.data.fields;
+            vm.items = resp.data.result.results;
+            vm.totalRows = resp.data.result.count;
+          })
+        },
+        initDeleteBtn() {
+          var vm = this;
+          $("#app").on("click", "button", function () {
+            const pk = $(this).attr("pk");
+            axios.delete(`/api/books/${pk}`).then(function (resp) {
+              vm.initData();
+            })
+          })
+        },
+        initPageBtn() {
+          var vm = this;
+          $("ul.pagination").on("click", "li", function () {
+            vm.currentPage = $(this).find("a").attr("aria-posinset");
+            vm.initData();
+          })
+        }
+      }
+    })
+
+  </script>
+{% endblock %}
